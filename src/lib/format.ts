@@ -26,3 +26,12 @@ export function formatDate(iso: string | Date): string {
 export function formatTime(iso: string | Date): string {
   return formatInTimeZone(iso, TIMEZONE, "HH:mm");
 }
+
+/** Día civil en hora de Chile, "YYYY-MM-DD" */
+export function toCivilDate(d: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: TIMEZONE }).format(d);
+}
+
+export function todayCivil(): string {
+  return toCivilDate(new Date());
+}
