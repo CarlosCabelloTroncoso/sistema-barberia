@@ -16,12 +16,12 @@ export default async function Home() {
         Agenda tu corte con tu barbero favorito. Rápido, sin llamadas.
       </p>
       <div className="flex flex-wrap items-center justify-center gap-3">
-        <Button size="lg" render={<Link href="/reservar" />}>
+        <Button size="lg" nativeButton={false} render={<Link href="/reservar" />}>
           Reservar hora
         </Button>
         {user ? (
           <>
-            <Button variant="outline" size="lg" render={<Link href="/cuenta" />}>
+            <Button variant="outline" size="lg" nativeButton={false} render={<Link href="/cuenta" />}>
               Mi cuenta
             </Button>
             <form action={logout}>
@@ -31,7 +31,7 @@ export default async function Home() {
             </form>
           </>
         ) : (
-          <Button variant="outline" size="lg" render={<Link href="/login" />}>
+          <Button variant="outline" size="lg" nativeButton={false} render={<Link href="/login" />}>
             Iniciar sesión
           </Button>
         )}
