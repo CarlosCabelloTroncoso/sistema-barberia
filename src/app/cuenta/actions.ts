@@ -4,7 +4,36 @@ import { addMinutes } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { fetchDaySlots } from "@/lib/booking";
+import { sendCancellationEmail, sendRescheduleEmail } from "@/lib/email";
 import { createClient } from "@/lib/supabase/server";
+
+/** Datos para el email de una cita del usuario autenticado. */
+async function emailDataFor(
+  appointmentId: string,
+  userEmail: string,
+  userId: string
+) {
+  const supabase = await createClient();
+  const [{ data: appt }, { data: profile }] = await Promise.all([
+    supabase
+      .from("appointments")
+      .select("starts_at, services(name, price_clp), barbers(display_name)")
+      .eq("id", appointmentId)
+      .single(),
+    supabase.from("profiles").select("full_name").eq("id", userId).single(),
+  ]);
+  if (!appt) return null;
+  const svc = appt.services as unknown as { name: string; price_clp: number };
+  const barber = appt.barbers as unknown as { display_name: string };
+  return {
+    to: userEmail,
+    clientName: profile?.full_name || "cliente",
+    serviceName: svc?.name ?? "Servicio",
+    barberName: barber?.display_name ?? "tu barbero",
+    startsAt: appt.starts_at,
+    priceClp: svc?.price_clp ?? 0,
+  };
+}
 
 /** Errores de los triggers de negocio llegan con el texto del RAISE. */
 function friendlyDbError(message: string | undefined, fallback: string): string {
@@ -25,6 +54,11 @@ export async function cancelAppointment(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Debes iniciar sesión" };
 
+  // capturar datos ANTES de cancelar (para el email)
+  const emailData = user.email
+    ? await emailDataFor(appointmentId, user.email, user.id)
+    : null;
+
   const { error } = await supabase
     .from("appointments")
     .update({ status: "cancelada" })
@@ -37,6 +71,8 @@ export async function cancelAppointment(
       error: friendlyDbError(error.message, "No se pudo cancelar. Intenta de nuevo."),
     };
   }
+
+  if (emailData) await sendCancellationEmail(emailData);
 
   revalidatePath("/cuenta");
   return { ok: true };
@@ -99,6 +135,11 @@ export async function rescheduleAppointment(input: {
     return {
       error: friendlyDbError(error.message, "No se pudo reprogramar. Intenta de nuevo."),
     };
+  }
+
+  if (user.email) {
+    const emailData = await emailDataFor(appointmentId, user.email, user.id);
+    if (emailData) await sendRescheduleEmail(emailData);
   }
 
   revalidatePath("/cuenta");

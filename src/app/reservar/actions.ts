@@ -3,6 +3,7 @@
 import { addMinutes } from "date-fns";
 import { z } from "zod";
 import { fetchDaySlots } from "@/lib/booking";
+import { sendConfirmationEmail } from "@/lib/email";
 import { createClient } from "@/lib/supabase/server";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -77,6 +78,22 @@ export async function bookAppointment(input: {
       return { error: "Alguien reservó esa hora justo antes. Elige otra." };
     }
     return { error: "No se pudo crear la reserva. Intenta de nuevo." };
+  }
+
+  if (user.email) {
+    const [{ data: svc }, { data: barber }, { data: profile }] = await Promise.all([
+      supabase.from("services").select("name, price_clp").eq("id", serviceId).single(),
+      supabase.from("barbers").select("display_name").eq("id", barberId).single(),
+      supabase.from("profiles").select("full_name").eq("id", user.id).single(),
+    ]);
+    await sendConfirmationEmail({
+      to: user.email,
+      clientName: profile?.full_name || "cliente",
+      serviceName: svc?.name ?? "Servicio",
+      barberName: barber?.display_name ?? "tu barbero",
+      startsAt,
+      priceClp: svc?.price_clp ?? 0,
+    });
   }
 
   return { ok: true };

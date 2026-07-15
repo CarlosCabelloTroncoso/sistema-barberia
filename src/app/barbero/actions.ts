@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { sendCancellationEmail } from "@/lib/email";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 async function getMyBarberId(): Promise<
@@ -48,6 +50,39 @@ export async function updateAppointmentStatus(
     .eq("barber_id", me.barberId);
 
   if (error) return { error: "No se pudo actualizar la cita" };
+
+  // Si el barbero cancela, avisar al cliente por email.
+  if (status === "cancelada") {
+    const { data: appt } = await supabase
+      .from("appointments")
+      .select(
+        "starts_at, client_id, profiles(full_name), services(name, price_clp), barbers(display_name)"
+      )
+      .eq("id", appointmentId)
+      .single();
+
+    if (appt) {
+      const adminClient = createAdminClient();
+      const { data: userData } = await adminClient.auth.admin.getUserById(
+        appt.client_id
+      );
+      const email = userData?.user?.email;
+      if (email) {
+        const svc = appt.services as unknown as { name: string; price_clp: number };
+        const barber = appt.barbers as unknown as { display_name: string };
+        const profile = appt.profiles as unknown as { full_name: string };
+        await sendCancellationEmail({
+          to: email,
+          clientName: profile?.full_name || "cliente",
+          serviceName: svc?.name ?? "Servicio",
+          barberName: barber?.display_name ?? "tu barbero",
+          startsAt: appt.starts_at,
+          priceClp: svc?.price_clp ?? 0,
+        });
+      }
+    }
+  }
+
   revalidatePath("/barbero");
   return { ok: true };
 }
