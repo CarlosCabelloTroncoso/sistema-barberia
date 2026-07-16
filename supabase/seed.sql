@@ -7,10 +7,8 @@ values (1, 'Barber Rusiosky')
 on conflict (id) do nothing;
 
 insert into public.services (name, description, duration_minutes, price_clp) values
-  ('Corte de pelo',    'Corte clásico o moderno, incluye lavado.',        30, 15000),
-  ('Corte + barba',    'Corte de pelo más perfilado y arreglo de barba.', 45, 22000),
-  ('Arreglo de barba', 'Perfilado, afeitado y cuidado de barba.',         20, 10000),
-  ('Corte niño',       'Corte para menores de 12 años.',                  30, 12000);
+  ('Corte clásico o moderno', 'Taper fade, low fade y más. Incluye lavado.',     30, 10000),
+  ('Corte + barba',           'Corte de pelo más perfilado y arreglo de barba.', 30, 13000);
 
 -- ── Promover usuarios (ejecutar manualmente con el email real) ─────────
 --

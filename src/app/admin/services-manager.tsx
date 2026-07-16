@@ -101,7 +101,7 @@ function ServiceDialog({
   const [name, setName] = useState(service?.name ?? "");
   const [description, setDescription] = useState(service?.description ?? "");
   const [duration, setDuration] = useState(String(service?.duration_minutes ?? 30));
-  const [price, setPrice] = useState(String(service?.price_clp ?? 15000));
+  const [price, setPrice] = useState(String(service?.price_clp ?? 10000));
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
