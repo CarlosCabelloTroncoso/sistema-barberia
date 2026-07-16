@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -82,33 +83,40 @@ export function MobileMenu({
         </svg>
       </button>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-[60] flex flex-col bg-background/98 backdrop-blur-xl duration-200 animate-in fade-in md:hidden motion-reduce:animate-none"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="h-[calc(clamp(12px,2.4vw,22px)+56px)] shrink-0" aria-hidden />
-          <nav className="flex flex-1 flex-col items-stretch justify-center gap-1.5 px-6 pb-24">
-            {links.map((l) => (
-              <Link key={l.href} href={l.href} className={itemCls}>
-                {l.label}
-              </Link>
-            ))}
-            {isLoggedIn ? (
-              <form action={logoutAction}>
-                <button type="submit" className={`w-full text-left ${itemCls}`}>
-                  Salir
-                </button>
-              </form>
-            ) : (
-              <Link href="/login" className={itemCls}>
-                Iniciar sesión
-              </Link>
-            )}
-          </nav>
-        </div>
-      )}
+      {open &&
+        createPortal(
+          // Portal a <body>: el overlay NO puede vivir dentro de .glass-nav.
+          // Un backdrop-filter/filter en un ancestro crea un containing block
+          // nuevo para descendientes `position: fixed` (spec CSS, Safari/iOS
+          // lo aplica estricto) — el overlay quedaba encogido al alto del
+          // pill del navbar en vez de cubrir la pantalla completa.
+          <div
+            className="fixed inset-0 z-[60] flex flex-col bg-background/98 backdrop-blur-xl duration-200 animate-in fade-in md:hidden motion-reduce:animate-none"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="h-[calc(clamp(12px,2.4vw,22px)+56px)] shrink-0" aria-hidden />
+            <nav className="flex flex-1 flex-col items-stretch justify-center gap-1.5 px-6 pb-24">
+              {links.map((l) => (
+                <Link key={l.href} href={l.href} className={itemCls}>
+                  {l.label}
+                </Link>
+              ))}
+              {isLoggedIn ? (
+                <form action={logoutAction}>
+                  <button type="submit" className={`w-full text-left ${itemCls}`}>
+                    Salir
+                  </button>
+                </form>
+              ) : (
+                <Link href="/login" className={itemCls}>
+                  Iniciar sesión
+                </Link>
+              )}
+            </nav>
+          </div>,
+          document.body
+        )}
     </>
   );
 }
