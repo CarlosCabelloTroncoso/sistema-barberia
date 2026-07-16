@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/(auth)/actions";
+import { MobileMenu } from "@/components/mobile-menu";
 
 type MenuLink = { href: string; label: string };
 
@@ -89,70 +90,8 @@ export async function Navbar() {
           <span className="nub size-[26px]">{arrow}</span>
         </Link>
 
-        {/* Menú colapsado en móvil/tablet (< md), sin JS */}
-        <details className="group relative shrink-0 md:hidden">
-          <summary className="flex size-9 cursor-pointer list-none items-center justify-center rounded-full border border-line-2 text-foreground transition-colors hover:bg-white/[0.04] [&::-webkit-details-marker]:hidden">
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              aria-hidden
-              className="group-open:hidden"
-            >
-              <path
-                d="M4 7h16M4 12h16M4 17h16"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-            </svg>
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              aria-hidden
-              className="hidden group-open:block"
-            >
-              <path
-                d="M6 6l12 12M18 6L6 18"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-            </svg>
-            <span className="sr-only">Abrir menú</span>
-          </summary>
-          <div className="glass-nav absolute right-0 top-[calc(100%+10px)] flex min-w-[200px] flex-col gap-1 !rounded-2xl p-2">
-            {links.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="rounded-xl px-3 py-2.5 text-sm text-ink-2 transition-colors hover:bg-white/[0.06] hover:text-foreground"
-              >
-                {l.label}
-              </Link>
-            ))}
-            {user ? (
-              <form action={logout}>
-                <button
-                  type="submit"
-                  className="w-full rounded-xl px-3 py-2.5 text-left text-sm text-ink-2 transition-colors hover:bg-white/[0.06] hover:text-foreground"
-                >
-                  Salir
-                </button>
-              </form>
-            ) : (
-              <Link
-                href="/login"
-                className="rounded-xl px-3 py-2.5 text-sm text-ink-2 transition-colors hover:bg-white/[0.06] hover:text-foreground"
-              >
-                Iniciar sesión
-              </Link>
-            )}
-          </div>
-        </details>
+        {/* Menú móvil/tablet (< md): overlay de pantalla completa */}
+        <MobileMenu links={links} isLoggedIn={!!user} logoutAction={logout} />
       </nav>
     </header>
   );
