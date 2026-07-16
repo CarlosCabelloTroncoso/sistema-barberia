@@ -5,38 +5,37 @@ import { formatCLP } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import type { Service } from "@/lib/types";
 
-// Fotos placeholder (Unsplash, verificadas). Para el piloto real: subir fotos
-// propias a /public/cortes y reemplazar estas URLs por "/cortes/mi-foto.jpg".
+// Fotos reales de cortes hechos en la barbería (/public/cortes).
 const cortes: GallerySlide[] = [
   {
-    src: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=900&q=75",
-    alt: "Barbero marcando un degradado con navaja",
-    label: "Fade con detalle a navaja",
+    src: "/cortes/corte-01.jpg",
+    alt: "Corte infantil con diseño de rayo afeitado en el degradado",
+    label: "Diseño a navaja",
   },
   {
-    src: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=900&q=75",
-    alt: "Corte de pelo con tijera visto desde arriba",
-    label: "Tijera y textura",
+    src: "/cortes/corte-02.jpg",
+    alt: "French crop con degradado medio",
+    label: "French crop",
   },
   {
-    src: "https://images.unsplash.com/photo-1493256338651-d82f7acb2b38?w=900&q=75",
-    alt: "Degradado a máquina en la nuca",
-    label: "Degradado a máquina",
+    src: "/cortes/corte-03.jpg",
+    alt: "Peinado clásico engominado con degradado bajo",
+    label: "Clásico engominado",
   },
   {
-    src: "https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=900&q=75",
-    alt: "Barbero peinando y secando a un cliente",
-    label: "Styling de acabado",
+    src: "/cortes/corte-04.jpg",
+    alt: "Corte texturizado con degradado bajo",
+    label: "Textura con degradado",
   },
   {
-    src: "https://images.unsplash.com/photo-1517832606299-7ae9b720a186?w=900&q=75",
-    alt: "Perfilado de barba con tijera en blanco y negro",
-    label: "Barba clásica",
+    src: "/cortes/corte-05.jpg",
+    alt: "French crop con color plateado y degradado a piel",
+    label: "Color plateado",
   },
   {
-    src: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=900&q=75",
-    alt: "Afeitado a navaja con el cliente reclinado",
-    label: "Toalla caliente y navaja",
+    src: "/cortes/corte-06.jpg",
+    alt: "Corte tazón prolijo visto desde atrás",
+    label: "Corte prolijo",
   },
 ];
 
