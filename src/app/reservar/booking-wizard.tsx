@@ -1,15 +1,28 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { es } from "react-day-picker/locale";
 import { CheckCircle2, ChevronLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+
+// El calendario (react-day-picker) es la dependencia más pesada del wizard y
+// solo se usa en el paso "horario". Se carga bajo demanda para aligerar el
+// bundle inicial de /reservar.
+const Calendar = dynamic(
+  () => import("@/components/ui/calendar").then((m) => m.Calendar),
+  {
+    ssr: false,
+    loading: () => (
+      <Skeleton className="mx-auto h-[350px] w-full max-w-[300px] rounded-xl sm:mx-0" />
+    ),
+  }
+);
 import { formatCLP, formatDate, formatDateTime, formatTime, TIMEZONE } from "@/lib/format";
 import type { Service } from "@/lib/types";
 import type { BarberWithMeta } from "./page";
