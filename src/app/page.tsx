@@ -74,7 +74,7 @@ export default async function Home() {
         <div className="animate-rise" style={{ animationDelay: "0ms" }}>
           <span className="eyebrow-pill">
             <span className="dot" aria-hidden />
-            Agenda abierta · Santiago de Chile
+            Agenda abierta · Maule
           </span>
         </div>
         <h1
