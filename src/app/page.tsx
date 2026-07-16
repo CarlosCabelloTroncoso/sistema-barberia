@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Footer } from "@/components/footer";
 import { GalleryCarousel, type GallerySlide } from "@/components/gallery-carousel";
 import { formatCLP } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
@@ -66,6 +67,7 @@ export default async function Home() {
     : null;
 
   return (
+    <>
     <main className="flex-1">
       {/* Hero */}
       <section className="relative mx-auto w-full max-w-[1240px] px-[clamp(20px,4vw,40px)] pb-[clamp(80px,10vh,140px)] pt-[clamp(110px,16vh,170px)]">
@@ -228,5 +230,7 @@ export default async function Home() {
         </div>
       </section>
     </main>
+    <Footer />
+    </>
   );
 }

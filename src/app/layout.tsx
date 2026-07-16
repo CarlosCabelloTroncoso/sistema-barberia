@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, JetBrains_Mono } from "next/font/google";
-import { Footer } from "@/components/footer";
 import { Navbar } from "@/components/navbar";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -37,7 +36,6 @@ export default function RootLayout({
         <div className="backdrop" aria-hidden />
         <Navbar />
         {children}
-        <Footer />
         <Toaster />
       </body>
     </html>
