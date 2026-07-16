@@ -6,8 +6,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export const dynamic = "force-dynamic";
 
 /**
- * Vercel Cron (cada hora): envía recordatorio a citas confirmadas que
- * empiezan dentro de las próximas 24 horas y aún no fueron recordadas.
+ * Vercel Cron (1 vez al día, 13:00 UTC ≈ 10:00 Chile): envía recordatorio a
+ * citas confirmadas que empiezan dentro de las próximas 24 horas y aún no
+ * fueron recordadas. Plan Hobby de Vercel solo permite crons diarios.
  */
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization");
