@@ -56,7 +56,7 @@ export async function Navbar() {
 
   return (
     <header className="sticky top-[clamp(12px,2.4vw,22px)] z-50 flex justify-center px-3 pt-[clamp(12px,2.4vw,22px)]">
-      <nav className="glass-nav flex w-full min-w-0 max-w-[1080px] flex-nowrap items-center gap-1.5 py-2 pl-4 pr-2 sm:gap-2">
+      <nav className="glass-nav relative flex w-full min-w-0 max-w-[1080px] flex-nowrap items-center gap-1.5 py-2 pl-4 pr-2 sm:gap-2">
         <Link
           href="/"
           className="inline-flex shrink-0 items-center gap-2 text-[15px] font-semibold tracking-tight"
