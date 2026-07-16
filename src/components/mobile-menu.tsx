@@ -18,10 +18,14 @@ export function MobileMenu({
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const close = () => setOpen(false);
 
-  // Cierra el menú al navegar (incluye el propio clic en un link).
+  // Respaldo: cierra si la ruta cambia por otra vía (atrás/adelante del
+  // navegador). El cierre principal va directo en cada onClick de abajo,
+  // no depende de este efecto (evita quedar abierto si el cambio de ruta
+  // tarda o el layout persiste entre navegaciones).
   useEffect(() => {
-    setOpen(false);
+    close();
   }, [pathname]);
 
   // Bloquea el scroll de fondo y permite cerrar con Escape mientras está abierto.
@@ -30,7 +34,7 @@ export function MobileMenu({
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") close();
     };
     window.addEventListener("keydown", onKey);
     return () => {
@@ -94,22 +98,31 @@ export function MobileMenu({
             className="fixed inset-0 z-[60] flex flex-col bg-background/98 backdrop-blur-xl duration-200 animate-in fade-in md:hidden motion-reduce:animate-none"
             role="dialog"
             aria-modal="true"
+            onClick={close}
           >
             <div className="h-[calc(clamp(12px,2.4vw,22px)+56px)] shrink-0" aria-hidden />
+            {/* onClick en cada link/botón: cierra en el mismo tap que navega,
+                sin depender de que el efecto de pathname llegue a tiempo.
+                El div de arriba cierra igual al tocar cualquier espacio
+                vacío (backdrop), ya que el clic burbujea hasta él. */}
             <nav className="flex flex-1 flex-col items-stretch justify-center gap-1.5 px-6 pb-24">
               {links.map((l) => (
-                <Link key={l.href} href={l.href} className={itemCls}>
+                <Link key={l.href} href={l.href} onClick={close} className={itemCls}>
                   {l.label}
                 </Link>
               ))}
               {isLoggedIn ? (
                 <form action={logoutAction}>
-                  <button type="submit" className={`w-full text-left ${itemCls}`}>
+                  <button
+                    type="submit"
+                    onClick={close}
+                    className={`w-full text-left ${itemCls}`}
+                  >
                     Salir
                   </button>
                 </form>
               ) : (
-                <Link href="/login" className={itemCls}>
+                <Link href="/login" onClick={close} className={itemCls}>
                   Iniciar sesión
                 </Link>
               )}
