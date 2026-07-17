@@ -29,8 +29,8 @@ export interface AppointmentRow {
   status: AppointmentStatus;
   barber_id: string;
   service_id: string;
-  barbers: { display_name: string };
-  services: { name: string; price_clp: number; duration_minutes: number };
+  barbers: { display_name: string } | null;
+  services: { name: string; price_clp: number; duration_minutes: number } | null;
 }
 
 const STATUS_LABEL: Record<AppointmentStatus, string> = {
@@ -111,11 +111,13 @@ function AppointmentCard({
       <CardContent className="space-y-3 py-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="font-medium">{a.services.name}</p>
+            <p className="font-medium">{a.services?.name ?? "Servicio no disponible"}</p>
             <p className="text-sm text-muted-foreground">
-              {a.barbers.display_name} · <span className="capitalize">{formatDateTime(a.starts_at)}</span>
+              {a.barbers?.display_name ?? "Barbero"} · <span className="capitalize">{formatDateTime(a.starts_at)}</span>
             </p>
-            <p className="text-sm text-muted-foreground">{formatCLP(a.services.price_clp)}</p>
+            {a.services && (
+              <p className="text-sm text-muted-foreground">{formatCLP(a.services.price_clp)}</p>
+            )}
           </div>
           <Badge variant={a.status === "confirmada" ? "default" : "secondary"}>
             {STATUS_LABEL[a.status]}
@@ -217,7 +219,7 @@ function RescheduleDialog({
         <DialogHeader>
           <DialogTitle>Reprogramar cita</DialogTitle>
           <DialogDescription>
-            {a.services.name} con {a.barbers.display_name} — actualmente{" "}
+            {a.services?.name ?? "Servicio no disponible"} con {a.barbers?.display_name ?? "barbero"} — actualmente{" "}
             <span className="capitalize">{formatDateTime(a.starts_at)}</span>
           </DialogDescription>
         </DialogHeader>

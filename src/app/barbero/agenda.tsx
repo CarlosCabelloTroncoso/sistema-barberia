@@ -28,8 +28,8 @@ export interface AgendaAppointment {
   ends_at: string;
   status: AppointmentStatus;
   client_id: string;
-  profiles: { full_name: string; phone: string | null };
-  services: { name: string; duration_minutes: number; price_clp: number };
+  profiles: { full_name: string; phone: string | null } | null;
+  services: { name: string; duration_minutes: number; price_clp: number } | null;
 }
 
 const STATUS_LABEL: Record<AppointmentStatus, string> = {
@@ -136,10 +136,16 @@ function AgendaCard({
             <p className="font-semibold tabular-nums">
               {formatTime(a.starts_at)} – {formatTime(a.ends_at)}
             </p>
-            <p className="font-medium">{a.profiles.full_name || "Cliente"}</p>
+            <p className="font-medium">{a.profiles?.full_name || "Cliente"}</p>
             <p className="text-sm text-muted-foreground">
-              {a.services.name} · {formatCLP(a.services.price_clp)}
-              {a.profiles.phone && <> · {a.profiles.phone}</>}
+              {a.services ? (
+                <>
+                  {a.services.name} · {formatCLP(a.services.price_clp)}
+                </>
+              ) : (
+                "Servicio no disponible"
+              )}
+              {a.profiles?.phone && <> · {a.profiles.phone}</>}
             </p>
             {note && (
               <p className="mt-1 rounded-lg bg-muted px-2 py-1 text-sm">
@@ -183,7 +189,7 @@ function AgendaCard({
           )}
           <NoteDialog
             clientId={a.client_id}
-            clientName={a.profiles.full_name || "Cliente"}
+            clientName={a.profiles?.full_name || "Cliente"}
             initialNote={note}
           />
         </div>

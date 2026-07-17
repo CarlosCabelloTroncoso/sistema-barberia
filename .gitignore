@@ -41,6 +41,9 @@ yarn-error.log*
 /.agents/
 /skills-lock.json
 
+# credenciales de cuentas de prueba (nunca al repo)
+/cuentas-prueba.txt
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
