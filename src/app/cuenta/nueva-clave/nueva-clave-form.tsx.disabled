@@ -1,0 +1,36 @@
+// PENDIENTE — ver page.tsx.disabled en esta misma carpeta.
+
+"use client";
+
+import { useActionState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { updatePassword, type AuthResult } from "../../(auth)/actions";
+
+export function NuevaClaveForm() {
+  const [state, formAction, pending] = useActionState<AuthResult | undefined, FormData>(
+    updatePassword,
+    undefined
+  );
+
+  return (
+    <form action={formAction} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="password">Contraseña nueva</Label>
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="new-password"
+          minLength={8}
+          required
+        />
+      </div>
+      {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
+      <Button type="submit" className="w-full" disabled={pending}>
+        {pending ? "Guardando…" : "Guardar contraseña"}
+      </Button>
+    </form>
+  );
+}

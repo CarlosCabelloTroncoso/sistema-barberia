@@ -1,0 +1,30 @@
+// PENDIENTE — recuperación de contraseña (ver plan completo en
+// src/app/(auth)/actions.ts). Este archivo tiene código real y listo:
+// para activarlo, quita el sufijo ".disabled" del nombre del archivo
+// (Next.js App Router solo enruta "route.ts" exacto, así que con el
+// sufijo puesto este archivo es invisible para el router — no rompe
+// nada estando así).
+//
+// Qué hace: Supabase manda al cliente un email con un link que apunta
+// acá (?token_hash=...&type=recovery). Este endpoint valida ese token
+// y, si es válido, crea una sesión de "recovery" y redirige a
+// /cuenta/nueva-clave para que el cliente setee su contraseña nueva.
+
+import { type EmailOtpType } from "@supabase/supabase-js";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const token_hash = searchParams.get("token_hash");
+  const type = searchParams.get("type") as EmailOtpType | null;
+  const next = searchParams.get("next") ?? "/cuenta/nueva-clave";
+
+  if (token_hash && type) {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.verifyOtp({ type, token_hash });
+    if (!error) redirect(next);
+  }
+
+  redirect("/login?error=link_invalido");
+}

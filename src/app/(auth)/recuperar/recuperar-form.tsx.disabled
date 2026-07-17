@@ -1,0 +1,43 @@
+// PENDIENTE — ver page.tsx.disabled en esta misma carpeta.
+
+"use client";
+
+import { useActionState, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { requestPasswordReset, type AuthResult } from "../actions";
+
+export function RecuperarForm() {
+  const [sent, setSent] = useState(false);
+  const [state, formAction, pending] = useActionState<AuthResult | undefined, FormData>(
+    async (prev, formData) => {
+      const res = await requestPasswordReset(prev, formData);
+      if (!res?.error) setSent(true);
+      return res;
+    },
+    undefined
+  );
+
+  if (sent) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Si el email está registrado, te llegará un link para elegir una
+        contraseña nueva. Revisa también spam.
+      </p>
+    );
+  }
+
+  return (
+    <form action={formAction} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+        <Input id="email" name="email" type="email" autoComplete="email" required />
+      </div>
+      {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
+      <Button type="submit" className="w-full" disabled={pending}>
+        {pending ? "Enviando…" : "Enviar link"}
+      </Button>
+    </form>
+  );
+}

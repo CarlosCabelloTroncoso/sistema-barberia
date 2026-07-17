@@ -1,0 +1,309 @@
+========================================================================
+BARBER RUSIOSKY — CONTEXTO COMPLETO DEL PROYECTO
+Generado por Claude el 2026-07-16, al cerrar la suscripción.
+========================================================================
+
+QUÉ ES
+------
+Sistema de reservas online para una barbería chilena (Maule). Cliente
+reserva hora por internet eligiendo barbero + servicio + día + hora.
+Barbero gestiona su agenda y disponibilidad. Admin gestiona servicios,
+barberos y configuración general.
+
+Repo: https://github.com/CarlosCabelloTroncoso/sistema-barberia
+Carpeta local: C:\Users\ignac\Desktop\Barber-Rusiosky
+Producción: https://barber-rusiosky-1.vercel.app/
+
+
+STACK TÉCNICO
+-------------
+- Next.js 16 (App Router, Turbopack) + React 19 + TypeScript
+- Supabase: Postgres + Auth + Realtime (proyecto ref: yjlwybxsyxbbbqkwzgkr)
+- shadcn/ui — OJO: variante Base UI, NO Radix. Botones-link usan
+  render={<Link/>} + nativeButton={false}, nunca asChild.
+- Tailwind CSS 4
+- Resend (emails transaccionales: confirmación + recordatorios)
+- Vercel (hosting + cron jobs)
+- react-hook-form + zod (formularios)
+- date-fns / date-fns-tz (fechas; timezone del negocio: America/Santiago)
+
+IMPORTANTE: Next.js 16 tiene cambios respecto a versiones anteriores
+(ver AGENTS.md del repo). Si Claude/otra IA edita este proyecto, debe
+revisar node_modules/next/dist/docs/ antes de asumir comportamiento de
+versiones viejas. Ejemplo ya aplicado: middleware.ts se renombró a
+proxy.ts porque Next 16 deprecó esa convención.
+
+
+ESTRUCTURA DE CARPETAS (src/)
+------------------------------
+app/
+  (auth)/login, (auth)/registro   — login y registro
+  admin/                          — panel admin: servicios, barberos, settings
+  barbero/                        — panel barbero: agenda, disponibilidad, notas
+  cuenta/                         — panel cliente: historial, cancelar, reprogramar
+  reservar/                       — flujo público de reserva (wizard)
+  api/cron/recordatorios/         — cron diario que manda recordatorio por email
+  page.tsx                        — home pública
+  proxy.ts                        — middleware de Next 16 (auth + rutas por rol)
+lib/
+  supabase/{client,server,admin}.ts — clientes Supabase (browser/server/service-role)
+  booking.ts                      — fetchDaySlots: arma los horarios disponibles
+  slots.ts                        — computeSlots: el algoritmo puro de slots
+  format.ts                       — helpers de fecha/hora/CLP, timezone Chile
+  email.ts                        — envío de emails via Resend
+  types.ts                        — tipos compartidos
+components/
+  navbar.tsx, mobile-menu.tsx, footer.tsx, gallery-carousel.tsx
+  ui/                             — componentes shadcn (Base UI)
+
+
+BASE DE DATOS (Supabase Postgres)
+-----------------------------------
+Migraciones en supabase/migrations/ (orden cronológico, aplicar en ese orden):
+  20260715000001_schema.sql              — tablas, triggers, constraints
+  20260715000002_rls.sql                 — Row Level Security (políticas)
+  20260716000001_fix_services_rls_barbero.sql — fix RLS servicios inactivos
+
+Tablas clave:
+  profiles       — 1:1 con auth.users, rol: cliente/barbero/admin
+  barbers        — perfil público del barbero (nombre, bio, foto, is_active)
+  services       — catálogo (nombre, duración, precio, is_active)
+  barber_services— qué servicios ofrece cada barbero
+  availability   — horario semanal recurrente por barbero (weekday 0=domingo..6=sábado)
+  time_off       — bloqueos puntuales (vacaciones, permisos)
+  appointments   — las citas. Tiene constraint EXCLUDE (gist) que impide
+                   doble-reserva del mismo barbero en el mismo rango horario
+                   a nivel de base de datos (no solo en la app)
+  client_notes   — notas privadas del barbero sobre un cliente
+  settings       — fila única (id=1): nombre negocio, horas mínimas de aviso,
+                   ventana de cancelación, intervalo de slots
+
+RLS (seguridad a nivel de fila): cada tabla tiene políticas que
+restringen qué puede leer/escribir cada rol. Funciones auxiliares
+security definer: get_my_role(), is_admin(), my_barber_id().
+
+GOTCHA YA RESUELTO (2026-07-16): la política de "services" solo dejaba
+leer is_active=true (o admin). Al desactivar un servicio viejo (en vez
+de borrarlo, para no romper el historial de citas), el JOIN
+appointments→services devolvía null para citas que lo usaban →
+crasheaba /barbero y /cuenta con "Cannot read properties of null". Se
+arregló ampliando la política para que barbero/admin/dueño-de-la-cita
+también puedan leer servicios inactivos. Si vuelve a pasar un error
+así con .services.algo o .profiles.algo siendo null, es la misma causa:
+revisar RLS de la tabla referenciada.
+
+
+CÓMO FUNCIONAN LOS HORARIOS (lo más delicado del sistema)
+-----------------------------------------------------------
+1. Cada barbero configura su "Horario semanal" en /barbero → pestaña
+   Disponibilidad: filas (weekday, start_time, end_time). Puede tener
+   VARIAS ventanas por día (no tiene que ser un solo bloque continuo).
+
+2. Cuando un cliente pide horas disponibles (src/lib/booking.ts →
+   fetchDaySlots → src/lib/slots.ts → computeSlots):
+   - Toma las ventanas de availability de ese weekday
+   - Dentro de cada ventana, genera horas de inicio cada
+     `slot_interval_minutes` (settings, global) minutos
+   - Descarta las que no caben completas antes del fin de la ventana
+   - Descarta las que se solapan con citas confirmadas o time_off
+   - Descarta las que no respetan min_booking_notice_hours
+
+3. GOTCHA REAL QUE PASÓ (2026-07-16): Miguel (el barbero real) tenía
+   UN SOLO bloque lunes 10:00-20:00, y slot_interval_minutes=15. Eso
+   generaba horas cada 15 min (10:00, 10:15, 10:30...) que no reflejan
+   cómo corta realmente (bloques irregulares: 10:00, 11:00, 11:30,
+   12:00, [almuerzo 12-14], 14:00, 15:00, 16:00, 17:00, 17:30, 18:00,
+   19:00, 20:00). SOLUCIÓN aplicada: en vez de un bloque ancho, se
+   cargaron 12 ventanas angostas por día (cada una de exactamente 30
+   min = duración real de los servicios), una por cada hora de inicio
+   real. Así cada ventana solo genera UN slot, sin fragmentación,
+   pase lo que pase con slot_interval_minutes.
+   → Si se necesita ajustar el horario de Miguel a futuro: es más
+   fácil pensarlo como "lista de horas de inicio válidas" y cargar
+   una ventana angosta (start, start+duración) por cada una, que
+   tratar de usar un bloque ancho + intervalo.
+   → Aplicado a los 7 días (0=domingo … 6=sábado), mismo patrón cada
+   día. Si el horario real varía por día, hay que ajustar por weekday.
+
+
+ROLES Y RUTAS
+--------------
+- cliente: /reservar (reservar hora), /cuenta (ver/cancelar/reprogramar
+  sus citas, historial)
+- barbero: /barbero (agenda del día/semana, marcar completada/no-show/
+  cancelar, notas de clientes, configurar disponibilidad y bloqueos,
+  notificaciones realtime cuando entra una reserva nueva)
+- admin: /admin (CRUD servicios, CRUD barberos, configuración general:
+  nombre negocio, horas de aviso mínimo, ventana de cancelación,
+  intervalo de slots)
+
+El rol se guarda en profiles.role. proxy.ts (middleware) protege las
+rutas según sesión + rol.
+
+
+REGLAS DE NEGOCIO IMPORTANTES
+-------------------------------
+- Sin pago online (fase 2, se evaluaría Transbank/WebPay)
+- Solo email por ahora (SMS/WhatsApp fase 2)
+- Anti doble-reserva: constraint EXCLUDE en la BD (no se puede saltar
+  ni con un bug de la app)
+- min_booking_notice_hours (default 2h): no se puede reservar con menos
+  aviso que eso
+- cancellation_window_hours (default 3h): no se puede cancelar/reprogramar
+  si falta menos que eso para la cita
+- Reglas de arriba solo aplican a clientes; barbero y admin pueden
+  gestionar citas sin esas restricciones (trigger enforce_appointment_rules
+  en la BD)
+- Servicios viejos/descontinuados se marcan is_active=false, NUNCA se
+  borran (para no romper el historial de citas ya hechas — la FK
+  quedaría rota)
+
+
+DISEÑO VISUAL
+--------------
+Sistema "Aura": tema oscuro único (no hay modo claro), canvas violeta
+oklch(0.105 0.012 285), acentos rosa/púrpura/teal degradados,
+tipografía Bricolage Grotesque (headings) + JetBrains Mono (números/
+mono). Clases custom clave en globals.css: .backdrop, .glass-nav,
+.cta-pill/.ghost-pill, .eyebrow-pill, .headline-accent, .glass-card.
+<html> lleva class="dark" fijo.
+
+GOTCHA Turbopack: si el CSS no se ve actualizado tras un cambio grande
+en globals.css, el dev server puede estar sirviendo un chunk cacheado
+viejo. Fix: matar proceso en :3000, borrar carpeta .next, relanzar
+`npm run dev`.
+
+
+VARIABLES DE ENTORNO (.env.local — NUNCA se sube a git)
+----------------------------------------------------------
+NEXT_PUBLIC_SUPABASE_URL       — URL del proyecto Supabase
+NEXT_PUBLIC_SUPABASE_ANON_KEY  — key pública (formato nuevo sb_publishable_...)
+SUPABASE_SERVICE_ROLE_KEY      — key admin/servidor (formato sb_secret_...)
+                                  NUNCA exponer al cliente, solo server-side
+RESEND_API_KEY                 — para enviar emails
+EMAIL_FROM                     — remitente de los emails
+CRON_SECRET                    — protege el endpoint /api/cron/recordatorios
+
+Si se pierde el .env.local, las keys se regeneran en el dashboard de
+Supabase (Settings → API) y Resend (dashboard).
+
+
+DEPLOY / VERCEL
+-----------------
+Deploy automático: cada push a `main` en GitHub dispara build+deploy en
+Vercel (proyecto ya conectado). URL: https://barber-rusiosky-1.vercel.app/
+
+Cron: vercel.json define /api/cron/recordatorios. Plan Hobby de Vercel
+solo permite 1 ejecución de cron al día (no por hora), ajustado a
+"0 13 * * *" (~10am hora Chile).
+
+Pendiente / a verificar: en Supabase → Authentication → URL
+Configuration, confirmar que Site URL y Redirect URLs apunten a la URL
+de Vercel (si cambia el dominio, hay que actualizar ahí o el login con
+redirect se rompe).
+
+Resend: sin dominio propio verificado, solo entrega emails a
+ignaciocarlos016@gmail.com. Si se quiere mandar a clientes reales, hay
+que comprar un dominio (evaluado .cl, ~$9.990/año en nic.cl) y
+verificarlo en Resend.
+
+
+CUENTAS DE PRUEBA (locales, en cuentas-prueba.txt — gitignored)
+-------------------------------------------------------------------
+Proyecto Supabase: yjlwybxsyxbbbqkwzgkr
+Password para todas: prueba1234
+  cliente.prueba@test.cl  — rol cliente
+  barbero.prueba@test.cl  — rol barbero
+  admin.prueba@test.cl    — rol admin
+Son descartables, borrar antes de producción real con clientes reales.
+
+Barbero real en producción: "Miguel" (barber_id
+22b16671-1a9e-48b6-90a8-452e38bf5373). Hay un segundo barbero "Kevin"
+cargado pero is_active=false (no aparece en /reservar).
+
+
+CÓMO CORRER EL PROYECTO LOCAL
+--------------------------------
+  npm install        (si no están las dependencias)
+  npm run dev         → http://localhost:3000 (Turbopack)
+  npm run build        → build de producción
+  npm run lint          → eslint
+
+El .env.local ya apunta al Supabase de PRODUCCIÓN (no hay una BD local
+separada) — cuidado al probar cosas destructivas en local, tocan datos
+reales.
+
+
+FLUJO DE TRABAJO GIT (cómo se ha estado trabajando)
+------------------------------------------------------
+Todo commit directo a `main` (sin ramas ni PRs), mensajes en español
+formato Conventional Commits (feat/fix/chore + scope). Cada cambio
+verificado se sube a GitHub inmediatamente (push automático) para que
+Vercel lo despliegue. NO se sube nunca: .env.local, cuentas-prueba.txt,
+carpetas de skills de diseño instaladas (.claude/, .agents/,
+skills-lock.json) — todas están en .gitignore.
+
+Algunos cambios de datos (ej. desactivar un servicio, ajustar horario
+de un barbero) se han hecho DIRECTO en Supabase (dashboard SQL editor
+o vía script con la service role key), no a través de migraciones ni
+de la UI de admin, cuando era más rápido. Si algo en producción no
+calza con lo que dice el código/seed, puede ser por esto — revisar
+directo en Supabase antes de asumir que el código está desactualizado.
+
+
+DECISIONES DE DISEÑO Y POR QUÉ (para no repetir discusiones)
+------------------------------------------------------------------
+- Se probaron y rechazaron 3 direcciones visuales antes de la actual
+  (mono blanco/negro; espresso/latón; cobalto) — el dueño quería algo
+  más parecido a un producto SaaS moderno que a una barbería
+  tradicional. Terminó en el clon del sistema "Aura".
+- MVP deliberadamente sin pago online ni SMS: se prioriza validar el
+  flujo de reserva con el barbero real antes de sumar complejidad.
+- Los precios y catálogo se simplificaron a 2 servicios visibles
+  (10.000 / 13.000 CLP, ambos 30 min) para el piloto con el barbero
+  real; "Arreglo de barba" y "Corte niño" quedaron ocultos
+  (is_active=false) pero no borrados.
+
+
+PENDIENTE: RECUPERACIÓN DE CONTRASEÑA (no implementado, código listo)
+-------------------------------------------------------------------------
+Hoy NO existe forma de que un cliente recupere su clave si la olvida.
+Único remedio: admin resetea manual desde Supabase dashboard
+(Authentication → Users → usuario → "Send password recovery" o setear
+clave nueva a mano).
+
+Ya se dejó el flujo completo ESCRITO pero DESACTIVADO (sufijo
+".disabled" en el nombre de archivo — Next.js App Router solo enruta
+"page.tsx"/"route.ts" exactos, así que estos archivos son invisibles
+para el router tal como están, cero riesgo):
+  src/app/auth/confirm/route.ts.disabled
+  src/app/(auth)/recuperar/page.tsx.disabled
+  src/app/(auth)/recuperar/recuperar-form.tsx.disabled
+  src/app/cuenta/nueva-clave/page.tsx.disabled
+  src/app/cuenta/nueva-clave/nueva-clave-form.tsx.disabled
+Más las server actions `requestPasswordReset` y `updatePassword`,
+comentadas al final de src/app/(auth)/actions.ts (bloque grande con
+instrucciones paso a paso de activación ahí mismo), y el link
+"¿Olvidaste tu contraseña?" comentado en login-form.tsx.
+
+Para activarlo: leer el comentario grande en actions.ts (tiene los 5
+pasos exactos: descomentar funciones, quitar sufijos ".disabled",
+descomentar el link, configurar Redirect URLs en Supabase, probar
+end-to-end). Es el flujo estándar de Supabase Auth (magic link por
+email + sesión de recovery temporal), no hay nada custom o riesgoso.
+
+
+SI VUELVES A CONTRATAR CLAUDE (O CUALQUIER IA) PARA SEGUIR ESTO
+--------------------------------------------------------------------
+1. Que lea este archivo primero, y AGENTS.md / CLAUDE.md del repo.
+2. Que revise `git log --oneline` para ver qué se hizo y en qué orden.
+3. Que revise las migraciones en supabase/migrations/ en orden
+   cronológico — son la fuente de verdad del esquema, pero recuerda
+   que hay cambios hechos directo en Supabase que no están en una
+   migración (documentados en los mensajes de commit relacionados,
+   ej. 1d09870).
+4. Ante cualquier error "Cannot read properties of null" en un dato
+   que viene de un JOIN de Supabase, sospechar primero de RLS (una
+   política que bloquea la fila referenciada) antes que de un bug de
+   lógica.
+========================================================================

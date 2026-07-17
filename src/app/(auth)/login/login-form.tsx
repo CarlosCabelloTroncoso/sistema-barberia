@@ -28,6 +28,16 @@ export function LoginForm({ next }: { next?: string }) {
           autoComplete="current-password"
           required
         />
+        {/* PENDIENTE: recuperación de contraseña no implementada aún.
+            Ver bloque comentado grande en ../actions.ts para el plan
+            completo. Al activarlo, descomentar este link:
+        <Link
+          href="/recuperar"
+          className="text-xs text-muted-foreground underline underline-offset-4"
+        >
+          ¿Olvidaste tu contraseña?
+        </Link>
+        */}
       </div>
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
       <Button type="submit" className="w-full" disabled={pending}>

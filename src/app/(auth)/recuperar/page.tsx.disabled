@@ -1,0 +1,33 @@
+// PENDIENTE — recuperación de contraseña (ver plan completo en
+// src/app/(auth)/actions.ts). Código real y listo: para activarlo,
+// quita el sufijo ".disabled" del nombre de este archivo Y de
+// recuperar-form.tsx.disabled en esta misma carpeta.
+
+import Link from "next/link";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { RecuperarForm } from "./recuperar-form";
+
+export const metadata = { title: "Recuperar contraseña" };
+
+export default function RecuperarPage() {
+  return (
+    <main className="flex flex-1 items-center justify-center p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>Recuperar contraseña</CardTitle>
+          <CardDescription>
+            Ingresa tu email y te enviaremos un link para elegir una contraseña nueva.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <RecuperarForm />
+          <p className="text-sm text-muted-foreground text-center">
+            <Link href="/login" className="underline underline-offset-4">
+              Volver a iniciar sesión
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
+    </main>
+  );
+}

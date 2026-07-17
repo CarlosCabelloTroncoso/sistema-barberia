@@ -1,0 +1,29 @@
+// PENDIENTE — recuperación de contraseña (ver plan completo en
+// src/app/(auth)/actions.ts). Código real y listo: para activarlo,
+// quita el sufijo ".disabled" de este archivo Y de
+// nueva-clave-form.tsx.disabled en esta misma carpeta.
+//
+// A esta página llega el cliente redirigido desde /auth/confirm tras
+// validar el token del email — en ese punto ya tiene una sesión de
+// "recovery" activa, por eso no hace falta pedir la clave vieja acá.
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { NuevaClaveForm } from "./nueva-clave-form";
+
+export const metadata = { title: "Elegir contraseña nueva" };
+
+export default function NuevaClavePage() {
+  return (
+    <main className="flex flex-1 items-center justify-center p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>Elige una contraseña nueva</CardTitle>
+          <CardDescription>Mínimo 8 caracteres.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <NuevaClaveForm />
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
